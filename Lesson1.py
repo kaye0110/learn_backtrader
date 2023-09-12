@@ -1,7 +1,7 @@
 # Lesson1：Backtrader来啦
 # link: https://mp.weixin.qq.com/s/7S4AnbUfQy2kCZhuFN1dZw
 
-#%%
+# %%
 import backtrader as bt
 import pandas as pd
 import datetime
@@ -12,7 +12,7 @@ cerebro = bt.Cerebro()
 daily_price = pd.read_csv("Data/daily_price.csv", parse_dates=['datetime'])
 trade_info = pd.read_csv("Data/trade_info.csv", parse_dates=['trade_date'])
 
-#%%
+# %%
 
 # 按股票代码，依次循环传入数据
 for stock in daily_price['sec_code'].unique():
@@ -25,6 +25,7 @@ for stock in daily_price['sec_code'].unique():
     # print(data_.dtypes)
     # 缺失值处理：日期对齐时会使得有些交易日的数据为空，所以需要对缺失数据进行填充
     data_.loc[:, ['volume', 'openinterest']] = data_.loc[:, ['volume', 'openinterest']].fillna(0)
+    # data_.loc[:, ['open', 'high', 'low', 'close']] = data_.loc[:, ['open', 'high', 'low', 'close']].fillna(method='pad')
     data_.loc[:, ['open', 'high', 'low', 'close']] = data_.loc[:, ['open', 'high', 'low', 'close']].fillna(method='pad')
     data_.loc[:, ['open', 'high', 'low', 'close']] = data_.loc[:, ['open', 'high', 'low', 'close']].fillna(0)
     # 导入数据
@@ -35,7 +36,8 @@ for stock in daily_price['sec_code'].unique():
 
 print("All stock Done !")
 
-#%%
+
+# %%
 
 # 回测策略
 class TestStrategy(bt.Strategy):
@@ -53,7 +55,13 @@ class TestStrategy(bt.Strategy):
     def next(self):
         dt = self.datas[0].datetime.date(0)  # 获取当前的回测时间点
         # 如果是调仓日，则进行调仓操作
-        if dt in self.trade_dates:
+
+        trade_dates_ = []
+        for a_date in self.trade_dates:
+            trade_dates_.append(datetime.date(a_date.year, a_date.month, a_date.day))
+
+        if dt in trade_dates_:
+        # if dt in self.trade_dates:
             print("--------------{} 为调仓日----------".format(dt))
             # 在调仓之前，取消之前所下的没成交也未到期的订单
             if len(self.order_list) > 0:
@@ -134,15 +142,13 @@ cerebro.addstrategy(TestStrategy, printlog=True)
 # 启动回测
 result = cerebro.run()
 # 从返回的 result 中提取回测结果
-strat = result[0]
+start = result[0]
 # 返回日度收益率序列
-daily_return = pd.Series(strat.analyzers.pnl.get_analysis())
+daily_return = pd.Series(start.analyzers.pnl.get_analysis())
 # 打印评价指标
 print("--------------- AnnualReturn -----------------")
-print(strat.analyzers._AnnualReturn.get_analysis())
+print(start.analyzers._AnnualReturn.get_analysis())
 print("--------------- SharpeRatio -----------------")
-print(strat.analyzers._SharpeRatio.get_analysis())
+print(start.analyzers._SharpeRatio.get_analysis())
 print("--------------- DrawDown -----------------")
-print(strat.analyzers._DrawDown.get_analysis())
-
-
+print(start.analyzers._DrawDown.get_analysis())

@@ -1,49 +1,56 @@
 # Lesson2：Backtrader来啦：数据篇
 # link: https://mp.weixin.qq.com/s/NTct2_AYhz4Z8q5MYtBQcA
-#%%
+# %%
 
 
-#%%
+# %%
 import backtrader as bt
 import pandas as pd
 import datetime
 
 import tushare as ts
 import json
-with open(r'Data/tushare_token.json','r') as load_json:
+
+with open(r'Data/tushare_token.json', 'r') as load_json:
     token_json = json.load(load_json)
 token = token_json['token']
-ts.set_token(token) 
+ts.set_token(token)
 pro = ts.pro_api(token)
-#%%
+
+
+# %%
 
 # 使用Tushare获取数据，要严格保持OHLC的格式
 
-def get_data_bytushare(code,start_date,end_date):
-    df = ts.pro_bar(ts_code=code, adj='qfq',start_date=start_date, end_date=end_date)
-    df = df[['trade_date', 'open', 'high', 'low', 'close','vol']]
-    df.columns = ['trade_date', 'open', 'high', 'low', 'close','volume']
+def get_data_bytushare(code, start_date, end_date):
+    df = ts.pro_bar(ts_code=code, adj='qfq', start_date=start_date, end_date=end_date)
+    df = df[['trade_date', 'open', 'high', 'low', 'close', 'vol']]
+    df.columns = ['trade_date', 'open', 'high', 'low', 'close', 'volume']
     df.trade_date = pd.to_datetime(df.trade_date)
     df.index = df.trade_date
     df.sort_index(inplace=True)
-    df.fillna(0.0,inplace=True)
+    df.fillna(0.0, inplace=True)
 
     return df
 
-# 恒瑞医药
-data1 = get_data_bytushare('600276.SH','20200101','20211015')
-# 贵州茅台
-data2 = get_data_bytushare('600519.SH','20200101','20211015')
-# 海天味业
-data3 = get_data_bytushare('603288.SH','20200101','20211015')
 
+# 恒瑞医药
+data1 = get_data_bytushare('600276.SH', '20200101', '20211016')
+# 贵州茅台
+data2 = get_data_bytushare('600519.SH', '20200101', '20211016')
+# 海天味业
+data3 = get_data_bytushare('603288.SH', '20200101', '20211016')
+
+data1.to_csv("Data/600276.SH.csv", index=False)
+data2.to_csv("Data/600519.SH.csv", index=False)
+data3.to_csv("Data/603288.SH.csv", index=False)
 # %%
 
 # 实例化策略
 cerebro = bt.Cerebro()
 
-st_date = datetime.datetime(2020,1,1)
-ed_date = datetime.datetime(2021,10,15)
+st_date = datetime.datetime(2020, 1, 1)
+ed_date = datetime.datetime(2021, 10, 15)
 
 # 添加 600276.SH 的行情数据
 datafeed1 = bt.feeds.PandasData(dataname=data1, fromdate=st_date, todate=ed_date)
@@ -58,7 +65,7 @@ datafeed3 = bt.feeds.PandasData(dataname=data3, fromdate=st_date, todate=ed_date
 cerebro.adddata(datafeed3, name='603288.SH')
 
 
-#%%
+# %%
 # 第一章 DataFeed的数据结构
 
 # 第1.1节：验证 data 的结构
@@ -68,22 +75,24 @@ class TestStrategy(bt.Strategy):
         print("-------------self.datas-------------")
         print(self.datas)
         print("-------------self.data-------------")
-        print(self.data._name, self.data) # 返回第一个导入的数据表格，缩写形式
+        print(self.data._name, self.data)  # 返回第一个导入的数据表格，缩写形式
         print("-------------self.data0-------------")
-        print(self.data0._name, self.data0) # 返回第一个导入的数据表格，缩写形式
+        print(self.data0._name, self.data0)  # 返回第一个导入的数据表格，缩写形式
         print("-------------self.datas[0]-------------")
-        print(self.datas[0]._name, self.datas[0]) # 返回第一个导入的数据表格，常规形式
+        print(self.datas[0]._name, self.datas[0])  # 返回第一个导入的数据表格，常规形式
         print("-------------self.datas[1]-------------")
-        print(self.datas[1]._name, self.datas[1]) # 返回第二个导入的数据表格，常规形式
+        print(self.datas[1]._name, self.datas[1])  # 返回第二个导入的数据表格，常规形式
         print("-------------self.datas[-1]-------------")
-        print(self.datas[-1]._name, self.datas[-1]) # 返回最后一个导入的数据表格
+        print(self.datas[-1]._name, self.datas[-1])  # 返回最后一个导入的数据表格
         print("-------------self.datas[-2]-------------")
-        print(self.datas[-2]._name, self.datas[-2]) # 返回倒数第二个导入的数据表格
+        print(self.datas[-2]._name, self.datas[-2])  # 返回倒数第二个导入的数据表格
+
 
 cerebro.addstrategy(TestStrategy)
 result = cerebro.run()
 
-#%%
+
+# %%
 
 # 第1.2节：验证 line 的结构
 class TestStrategy(bt.Strategy):
@@ -100,53 +109,90 @@ class TestStrategy(bt.Strategy):
         print(self.sma.lines)
         print("---------- 直接打印 indicators 对象的第一条 lines -------------")
         print(self.sma.lines[0])
-        
+
     def next(self):
         print('验证索引位置为 6 的线是不是 datetime')
         # datetime 线中的时间点存的是数字形式的时间，可以通过 bt.num2date() 方法将其转为“xxxx-xx-xx xx:xx:xx”这种形式
         print(bt.num2date(self.datas[0].lines[6][0]))
 
-        
+
 cerebro.addstrategy(TestStrategy)
 result = cerebro.run()
-#%%
+
+
+# %%
 
 # 第3节：提取 line 上的数据点，使用 get(ago,size) 切片函数
 class TestStrategy(bt.Strategy):
     def __init__(self):
-        self.count = 0 # 用于计算 next 的循环次数
+        self.count = 0  # 用于计算 next 的循环次数
         # 打印数据集和数据集对应的名称
         print("------------- init 中的索引位置-------------")
         # 对 datetime 线进行索引时，xxx.date(X) 可以直接以“xxxx-xx-xx xx:xx:xx”的形式返回，X 就是索引位置，可以看做是传统 [X] 索引方式的改进版 
-        print("0 索引：",'datetime',self.data1.lines.datetime.date(0), 'close',self.data1.lines.close[0])
-        print("-1 索引：",'datetime',self.data1.lines.datetime.date(-1),'close', self.data1.lines.close[-1])
-        print("-2 索引",'datetime', self.data1.lines.datetime.date(-2),'close', self.data1.lines.close[-2])
-        print("1 索引：",'datetime',self.data1.lines.datetime.date(1),'close', self.data1.lines.close[1])
-        print("2 索引",'datetime', self.data1.lines.datetime.date(2),'close', self.data1.lines.close[2])
+        print("0 索引：", 'datetime', self.data1.lines.datetime.date(0), 'close', self.data1.lines.close[0])
+        print("-1 索引：", 'datetime', self.data1.lines.datetime.date(-1), 'close', self.data1.lines.close[-1])
+        print("-2 索引", 'datetime', self.data1.lines.datetime.date(-2), 'close', self.data1.lines.close[-2])
+        print("1 索引：", 'datetime', self.data1.lines.datetime.date(1), 'close', self.data1.lines.close[1])
+        print("2 索引", 'datetime', self.data1.lines.datetime.date(2), 'close', self.data1.lines.close[2])
         # 通过 get() 切片时，如果是从 ago=0 开始取，不会返回数据，从其他索引位置开始取，能返回数据
         print("从 0 开始往前取3天的收盘价：", self.data1.lines.close.get(ago=0, size=3))
         print("从-1开始往前取3天的收盘价：", self.data1.lines.close.get(ago=-1, size=3))
         print("从-2开始往前取3天的收盘价：", self.data1.lines.close.get(ago=-2, size=3))
         print("line的总长度：", self.data1.buflen())
-        
+
     def next(self):
-        print(f"------------- next 的第{self.count+1}次循环 --------------")
-        print("当前时点（今日）：",'datetime',self.data1.lines.datetime.date(0),'close', self.data1.lines.close[0])
-        print("往前推1天（昨日）：",'datetime',self.data1.lines.datetime.date(-1),'close', self.data1.lines.close[-1])
-        print("往前推2天（前日）", 'datetime',self.data1.lines.datetime.date(-2),'close', self.data1.lines.close[-2])
+
+        if (self.count == 429):
+            print("aaa ", len(self.data1.lines.datetime))
+
+        print(f"------------- next 的第{self.count + 1}次循环 --------------")
+        print("当前时点（今日）：", 'datetime', self.data1.lines.datetime.date(0), 'close', self.data1.lines.close[0])
+        print("往前推1天（昨日）：", 'datetime', self.data1.lines.datetime.date(-1), 'close', self.data1.lines.close[-1])
+        print("往前推2天（前日）", 'datetime', self.data1.lines.datetime.date(-2), 'close', self.data1.lines.close[-2])
         print("前日、昨日、今日的收盘价：", self.data1.lines.close.get(ago=0, size=3))
-        print("往后推1天（明日）：",'datetime',self.data1.lines.datetime.date(1),'close', self.data1.lines.close[1])
-        print("往后推2天（明后日）", 'datetime',self.data1.lines.datetime.date(2),'close', self.data1.lines.close[2])
+
+        if ((self.count + 2) < len(self.data1.lines.datetime)):
+            print("往后推1天（明日）：", 'datetime', self.data1.lines.datetime.date(1), 'close', self.data1.lines.close[1])
+
+        if ((self.count + 1) < len(self.data1.lines.datetime)):
+            print("往后推2天（明后日）", 'datetime', self.data1.lines.datetime.date(2), 'close',
+                  self.data1.lines.close[2])
+
         # 在 next() 中调用 len(self.data0)，返回的是当前已处理（已回测）的数据长度，会随着回测的推进动态增长
         print("已处理的数据点：", len(self.data1))
         # buflen() 返回整条线的总长度，固定不变；
-        print("line的总长度：", self.data0.buflen())
+        print("line的总长度：", self.data1.buflen())
         self.count += 1
+
+
+# 初始资金 100,000,000
+cerebro.broker.setcash(100000000.0)
+# 佣金，双边各 0.0003
+cerebro.broker.setcommission(commission=0.0003)
+# 滑点：双边各 0.0001
+cerebro.broker.set_slippage_perc(perc=0.005)
+
+cerebro.addanalyzer(bt.analyzers.TimeReturn, _name='pnl')  # 返回收益率时序数据
+cerebro.addanalyzer(bt.analyzers.AnnualReturn, _name='_AnnualReturn')  # 年化收益率
+cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='_SharpeRatio')  # 夏普比率
+cerebro.addanalyzer(bt.analyzers.DrawDown, _name='_DrawDown')  # 回撤
 
 cerebro.addstrategy(TestStrategy)
 result = cerebro.run()
 
-#%%
+# 从返回的 result 中提取回测结果
+start = result[0]
+# 返回日度收益率序列
+daily_return = pd.Series(start.analyzers.pnl.get_analysis())
+# 打印评价指标
+print("--------------- AnnualReturn -----------------")
+print(start.analyzers._AnnualReturn.get_analysis())
+print("--------------- SharpeRatio -----------------")
+print(start.analyzers._SharpeRatio.get_analysis())
+print("--------------- DrawDown -----------------")
+print(start.analyzers._DrawDown.get_analysis())
+
+# %%
 
 # 第二章 DataFeeds 数据模块
 
@@ -173,21 +219,21 @@ data = bt.feeds.PandasDirectData(dataname=df)
 cerebro.adddata(data, name='XXX')
 
 # 以 GenericCSVData 为例进行参数说明（其他导入函数参数类似）
-bt.feeds.GenericCSVData(dataname='daily_price.csv', # 数据源，CSV文件名 或 Dataframe对象
-                        fromdate=st_date, # 读取的起始时间
-                        todate=ed_date, # 读取的结束时间
-                        nullvalue=0.0, # 缺失值填充
-                        dtformat=('%Y-%m-%d'), # 日期解析的格式
+bt.feeds.GenericCSVData(dataname='daily_price.csv',  # 数据源，CSV文件名 或 Dataframe对象
+                        fromdate=st_date,  # 读取的起始时间
+                        todate=ed_date,  # 读取的结束时间
+                        nullvalue=0.0,  # 缺失值填充
+                        dtformat=('%Y-%m-%d'),  # 日期解析的格式
                         # 下面是数据表格默认包含的 7 个指标，取值对应指标在 daily_price.csv 中的列索引位置
-                        datetime=0, # 告诉 GenericCSVData， datetime 在 daily_price.csv 文件的第1列
+                        datetime=0,  # 告诉 GenericCSVData， datetime 在 daily_price.csv 文件的第1列
                         high=3,
                         low=4,
                         open=2,
                         close=5,
                         volume=6,
-                        openinterest=-1) # 如果取值为 -1 , 告诉 GenericCSVData 该指标不存在
+                        openinterest=-1)  # 如果取值为 -1 , 告诉 GenericCSVData 该指标不存在
 
-#%%
+# %%
 # 第2.2节 自定义读取函数
 '''
 如果你觉得每次都要设置这么多参数来告知指标位置很麻烦，那你也可以重新自定义数据读取函数，
@@ -196,28 +242,31 @@ bt.feeds.GenericCSVData(dataname='daily_price.csv', # 数据源，CSV文件名 �
 自定义的函数，不会修改 Backtrader 底层的数据表格内 lines 的排列规则。
 自定义的数据读取函数只是规定了一个新的数据读取规则，调用这个函数，就按函数里设置的规则来读数据，而不用每次都设置一堆参数。
 '''
+
+
 class My_CSVData(bt.feeds.GenericCSVData):
     params = (
-                ('fromdate', datetime.datetime(2019,1,2)),
-                ('todate', datetime.datetime(2021,1,28)),
-                ('nullvalue', 0.0),
-                ('dtformat', ('%Y-%m-%d')),
-                ('datetime', 0),
-                ('time', -1),
-                ('high', 3),
-                ('low', 4),
-                ('open', 2),
-                ('close', 5),
-                ('volume', 6),
-                ('openinterest', -1)
-            )
+        ('fromdate', datetime.datetime(2019, 1, 2)),
+        ('todate', datetime.datetime(2021, 1, 28)),
+        ('nullvalue', 0.0),
+        ('dtformat', ('%Y-%m-%d')),
+        ('datetime', 0),
+        ('time', -1),
+        ('high', 3),
+        ('low', 4),
+        ('open', 2),
+        ('close', 5),
+        ('volume', 6),
+        ('openinterest', -1)
+    )
+
 
 cerebro = bt.Cerebro()
 data = My_CSVData(dataname='daily_price.csv')
 cerebro.adddata(data, name='600466.SH')
 result = cerebro.run()
 
-#%%
+# %%
 # 第2.3节 新增指标
 '''
 在回测时，除了常规的高开低收成交量这些行情数据外，还会用到别的指标，
@@ -228,14 +277,16 @@ result = cerebro.run()
 具体对照下面例子的输出部分：
 '''
 
+
 class PandasData_more(bt.feeds.PandasData):
-    lines = ('pe', 'pb', ) # 要添加的线
+    lines = ('pe', 'pb',)  # 要添加的线
     # 设置 line 在数据源上的列位置
-    params=(
-             ('pe', -1),
-             ('pb', -1),
-            )
+    params = (
+        ('pe', -1),
+        ('pb', -1),
+    )
     # -1表示自动按列明匹配数据，也可以设置为线在数据源中列的位置索引 (('pe',6),('pb',7),)
+
 
 class TestStrategy(bt.Strategy):
     def __init__(self):
@@ -244,13 +295,14 @@ class TestStrategy(bt.Strategy):
         print("pe line:", self.data0.lines.pe)
         print("pb line:", self.data0.lines.pb)
 
-data1['pe'] = 2 # 给原先的data1新增pe指标（简单的取值为2）
-data1['pb'] = 3 # 给原先的data1新增pb指标（简单的取值为3）
+
+data1['pe'] = 2  # 给原先的data1新增pe指标（简单的取值为2）
+data1['pb'] = 3  # 给原先的data1新增pb指标（简单的取值为3）
 
 # 导入的数据 data1 中
 cerebro = bt.Cerebro()
-st_date = datetime.datetime(2020,1,1)
-ed_date = datetime.datetime(2021,10,15)
+st_date = datetime.datetime(2020, 1, 1)
+ed_date = datetime.datetime(2021, 10, 15)
 
 # 这里使用上述定义的新类PandasData_more（继承了bt.feeds.PandasData）
 datafeed1 = PandasData_more(dataname=data1, fromdate=st_date, todate=ed_date)
